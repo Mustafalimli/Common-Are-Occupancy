@@ -1,74 +1,75 @@
 import cv2
-import torch
-from ultralytics import YOLO
+
+# Gerekli kütüphaneleri içe aktar, eğer yüklü değilse model devre dışı bırakılır.
+try:
+    import torch
+    from ultralytics import YOLO
+except ModuleNotFoundError:
+    print("'torch' and 'ultralytics' modules are required but not installed. YOLO-based detection will be disabled.")
+    YOLO = None
 
 def process_frame(frame, model):
+    """
+    Her karede, YOLO modeliyle 'person', 'book' ve 'table' nesnelerini tespit eder.
+    Tespit edilen nesneler, belirlenen renklerle (insan: yeşil, kitap: mavi, masa: kırmızı) kare içine alınır ve etiketleri ekrana yazdırılır.
+    """
+    # Model kullanılabilir değilse, işlem yapılmadan görüntü döndürülür.
+    if model is None:
+        return frame
+
+    # Modeli kullanarak nesne tespiti yap.
     results = model(frame)
-    occupied_tables = []
-    detected_objects = []
-    
+
+    # Her bir tespit sonucunu işleme al.
     for result in results:
         for box in result.boxes:
+            # Kare koordinatlarını al ve tam sayıya çevir.
             x1, y1, x2, y2 = map(int, box.xyxy[0])
+            # Sınıf etiketini al.
             label = result.names[int(box.cls[0])]
-            
-            detected_objects.append((label, (x1, y1, x2, y2)))
-            color = (0, 255, 0) if label in ["chair", "table"] else (255, 0, 0)
-            
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-    
-    tables = [obj for obj in detected_objects if obj[0] == "table"]
-    chairs = [obj for obj in detected_objects if obj[0] == "chair"]
-    
-    for idx, (label, (tx1, ty1, tx2, ty2)) in enumerate(tables):
-        table_full = False
-        for _, (cx1, cy1, cx2, cy2) in chairs:
-            if cx1 > tx1 and cy1 > ty1 and cx2 < tx2 and cy2 < ty2:
-                table_full = True
-                break
-        
-        if table_full:
-            occupied_tables.append(idx + 1)
-            cv2.putText(frame, f"Masa {idx+1} DOLU", (tx1, ty1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        else:
-            cv2.putText(frame, f"Masa {idx+1} BOS", (tx1, ty1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    
-    return frame, occupied_tables
+
+            # Sadece "person", "book" ve "table" sınıflarına odaklan.
+            if label.lower() in ['person', 'book', 'table']:
+                # Nesneye göre renk belirle.
+                if label.lower() == 'person':
+                    color = (0, 255, 0)    # Yeşil: insan
+                elif label.lower() == 'book':
+                    color = (255, 0, 0)    # Mavi: kitap
+                elif label.lower() == 'table':
+                    color = (0, 0, 255)    # Kırmızı: masa
+                else:
+                    color = (255, 255, 255)
+                
+                # Kare içine alma ve etiketi ekrana yazdırma.
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    return frame
 
 def main(video_path):
+    # Video dosyasını aç.
     cap = cv2.VideoCapture(video_path)
-    model = YOLO("yolov8n.pt")  # YOLOv8 modeli yükleniyor
-
-    # Video yazıcıyı başlatıyoruz (çıkış dosyası, codec, fps ve frame boyutları)
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # XVID codec
-    out = cv2.VideoWriter('output_video.avi', fourcc, 30.0, (int(cap.get(3)), int(cap.get(4))))
+    # YOLO modelini yükle, eğer modül mevcutsa.
+    model = YOLO("yolov8n.pt") if YOLO else None
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-        
-        processed_frame, occupied_tables = process_frame(frame, model)
-        
-        # Dolu masalar bilgisini konsola yazdırıyoruz
-        print(f"Dolu Masalar: {occupied_tables}")
-        
-        # İşlenmiş frame'i ekrana gösteriyoruz
-        cv2.imshow("Kütüphane Masa Takip", processed_frame)
 
-        # İşlenmiş frame'i çıktı videosuna kaydediyoruz
-        out.write(processed_frame)
+        # Her kareyi işleme al.
+        processed_frame = process_frame(frame, model)
         
-        # 'q' tuşuna basılırsa video kapanacak
-        if cv2.waitKey(30) & 0xFF == ord('q'):
+        # İşlenmiş kareyi anlık olarak ekranda göster.
+        cv2.imshow("Kütüphane Masa Takip", processed_frame)
+        
+        # 1 milisaniyelik bekleme, 'q' tuşuna basılırsa döngüden çık.
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # Kaynakları serbest bırakıyoruz
+    # Kaynakları serbest bırak ve pencereleri kapat.
     cap.release()
-    out.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera.mp4"  # Yolu kontrol edin
+    video_path = "video.mp4"  # Video dosyanın yolu; gerekirse güncelle.
     main(video_path)
