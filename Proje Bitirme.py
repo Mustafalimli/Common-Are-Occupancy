@@ -22,6 +22,9 @@ def process_frame(frame, model):
     results = model(frame)
     print(f"Number of detections: {len(results[0].boxes)}")
 
+    # Initialize person count
+    person_count = 0
+    
     # Her bir tespit sonucunu işleme al.
     for result in results:
         for box in result.boxes:
@@ -31,21 +34,32 @@ def process_frame(frame, model):
             label = result.names[int(box.cls[0])]
             print(f"Detected: {label}")
 
-            # Sadece "person", "book" ve "table" sınıflarına odaklan.
-            if label.lower() in ['person', 'book', 'table']:
-                # Nesneye göre renk belirle.
+            # Add 'chair' to detection list and count persons
+            if label.lower() in ['person', 'book', 'table', 'chair']:
                 if label.lower() == 'person':
                     color = (0, 255, 0)    # Yeşil: insan
+                    person_count += 1
                 elif label.lower() == 'book':
                     color = (255, 0, 0)    # Mavi: kitap
                 elif label.lower() == 'table':
                     color = (0, 0, 255)    # Kırmızı: masa
+                elif label.lower() == 'chair':
+                    color = (255, 255, 0)  # Turkuaz: sandalye
                 else:
                     color = (255, 255, 255)
                 
                 # Kare içine alma ve etiketi ekrana yazdırma.
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+    # Add person count to bottom right corner
+    height, width = frame.shape[:2]
+    count_text = f"People: {person_count}"
+    text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+    text_x = width - text_size[0] - 10
+    text_y = height - 20
+    cv2.putText(frame, count_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
     return frame
 
 def main(video_path):
@@ -91,5 +105,5 @@ def main(video_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera.mp4"  # Yolu kontrol edin
+    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera1.mp4"  # Yolu kontrol edin
     main(video_path)
