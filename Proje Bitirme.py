@@ -15,10 +15,12 @@ def process_frame(frame, model):
     """
     # Model kullanılabilir değilse, işlem yapılmadan görüntü döndürülür.
     if model is None:
+        print("Model is not available!")
         return frame
 
     # Modeli kullanarak nesne tespiti yap.
     results = model(frame)
+    print(f"Number of detections: {len(results[0].boxes)}")
 
     # Her bir tespit sonucunu işleme al.
     for result in results:
@@ -27,6 +29,7 @@ def process_frame(frame, model):
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             # Sınıf etiketini al.
             label = result.names[int(box.cls[0])]
+            print(f"Detected: {label}")
 
             # Sadece "person", "book" ve "table" sınıflarına odaklan.
             if label.lower() in ['person', 'book', 'table']:
@@ -48,12 +51,29 @@ def process_frame(frame, model):
 def main(video_path):
     # Video dosyasını aç.
     cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file at {video_path}")
+        return
+        
     # YOLO modelini yükle, eğer modül mevcutsa.
     model = YOLO("yolov8n.pt") if YOLO else None
+    if model is None:
+        print("YOLO model could not be loaded!")
+    else:
+        print("YOLO model loaded successfully!")
+
+    # Video boyutlarını al
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    # Pencereyi oluştur ve boyutlandır
+    cv2.namedWindow("Kütüphane Masa Takip", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Kütüphane Masa Takip", frame_width, frame_height)
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
+            print("Error: Could not read frame")
             break
 
         # Her kareyi işleme al.
@@ -71,5 +91,5 @@ def main(video_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = "video.mp4"  # Video dosyanın yolu; gerekirse güncelle.
+    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera.mp4"  # Yolu kontrol edin
     main(video_path)
