@@ -105,5 +105,5 @@ def main(video_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera.mp4"  # Yolu kontrol edin
+    video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera1.mp4"  # Yolu kontrol edin
     main(video_path)
