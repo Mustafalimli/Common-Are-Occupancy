@@ -95,11 +95,7 @@ def main(video_path):
         
         # İşlenmiş kareyi anlık olarak ekranda göster.
         cv2.imshow("Kütüphane Masa Takip", processed_frame)
-        
-        # 1 milisaniyelik bekleme, 'q' tuşuna basılırsa döngüden çık.
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
+     
     # Kaynakları serbest bırak ve pencereleri kapat.
     cap.release()
     cv2.destroyAllWindows()
