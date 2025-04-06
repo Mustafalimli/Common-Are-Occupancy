@@ -22,7 +22,7 @@ def process_frame(frame, model):
     results = model(frame)
     print(f"Number of detections: {len(results[0].boxes)}")
 
-    # Initialize person count
+    # kisi sayisi alma  değişkeni
     person_count = 0
     
     # Her bir tespit sonucunu işleme al.
@@ -34,7 +34,7 @@ def process_frame(frame, model):
             label = result.names[int(box.cls[0])]
             print(f"Detected: {label}")
 
-            # Add 'chair' to detection list and count persons
+            # sandalye,masa,kitap,insan tespit etme.
             if label.lower() in ['person', 'book', 'table', 'chair']:
                 if label.lower() == 'person':
                     color = (0, 255, 0)    # Yeşil: insan
@@ -52,7 +52,7 @@ def process_frame(frame, model):
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-    # Add person count to bottom right corner
+    # kisi sayısını ekrana yazdırma.
     height, width = frame.shape[:2]
     count_text = f"People: {person_count}"
     text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
@@ -72,9 +72,9 @@ def main(video_path):
     # YOLO modelini yükle, eğer modül mevcutsa.
     model = YOLO("yolov8n.pt") if YOLO else None
     if model is None:
-        print("YOLO model could not be loaded!")
+        print("YOLO model calismadi!")
     else:
-        print("YOLO model loaded successfully!")
+        print("YOLO model calisti!")
 
     # Video boyutlarını al
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
