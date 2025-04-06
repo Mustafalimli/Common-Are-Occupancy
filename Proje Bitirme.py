@@ -96,9 +96,6 @@ def main(video_path):
         # İşlenmiş kareyi anlık olarak ekranda göster.
         cv2.imshow("Kütüphane Masa Takip", processed_frame)
         
-        # 1 milisaniyelik bekleme, 'q' tuşuna basılırsa döngüden çık.
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
     # Kaynakları serbest bırak ve pencereleri kapat.
     cap.release()
@@ -107,3 +104,100 @@ def main(video_path):
 if __name__ == "__main__":
     video_path = r"C:\Users\Mustafa\Desktop\Yeni klasör\camera1.mp4"  # Yolu kontrol edin
     main(video_path)
+    # Create a Flask web server for the mobile interface
+    from flask import Flask, render_template, jsonify
+    import threading
+
+    app = Flask(__name__)
+
+    # Store table status
+    tables = {
+        1: {"occupied": False, "people": 0},
+        2: {"occupied": False, "people": 0}, 
+        3: {"occupied": False, "people": 0},
+        4: {"occupied": False, "people": 0},
+        5: {"occupied": False, "people": 0},
+        6: {"occupied": False, "people": 0}
+    }
+
+    @app.route('/')
+    def index():
+        return render_template('index.html', tables=tables)
+
+    @app.route('/api/tables')
+    def get_tables():
+        return jsonify(tables)
+
+    def update_table_status(table_id, occupied, people):
+        tables[table_id]["occupied"] = occupied
+        tables[table_id]["people"] = people
+
+    def run_flask():
+        app.run(host='0.0.0.0', port=5000)
+
+    # Start Flask server in a separate thread
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Create templates/index.html with this content:
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Library Table Status</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            .table-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                padding: 20px;
+            }
+            .table {
+                background: #fff;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .table.occupied {
+                background: #ffebee;
+            }
+            .table-number {
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .people-count {
+                margin-top: 10px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="table-grid">
+            {% for id, table in tables.items() %}
+            <div class="table {% if table.occupied %}occupied{% endif %}">
+                <div class="table-number">Table {{ id }}</div>
+                <div class="people-count">People: {{ table.people }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <script>
+            function updateTables() {
+                fetch('/api/tables')
+                    .then(response => response.json())
+                    .then(data => {
+                        for (let id in data) {
+                            let table = document.querySelector(`.table:nth-child(${id})`);
+                            table.classList.toggle('occupied', data[id].occupied);
+                            table.querySelector('.people-count').textContent = `People: ${data[id].people}`;
+                        }
+                    });
+            }
+            setInterval(updateTables, 1000);
+        </script>
+    </body>
+    </html>
+    """
